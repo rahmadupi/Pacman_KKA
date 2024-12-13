@@ -43,9 +43,10 @@ class Game_State(Enum):
     MENU= auto()
     GAME_START= auto()
     GAME = auto()
-    PAUSE = auto()
+    GAME_RESTART = auto()
     GAME_OVER = auto()
     WIN = auto()
+    END = auto()
     
 def load_image(file_name):
     return pygame.image.load(os.path.join(base_path,'..','resources','sprite', file_name)).convert_alpha()
@@ -71,13 +72,22 @@ class Start_Menu:
         self.font3 = pygame.font.Font(self.font_path, 14)
         
         self.difficulty_selection=0
-        self.difficulty_options = list(Level.Difficulty.__members__.keys())
+        # self.difficulty_options = list(Level.Difficulty.__members__.keys())
+        self.difficulty_options = list(Level.Difficulty)
         # print(self.difficulty_options)
         
         #background
         self.ghost_background = []
         self.grid_background=[[" " for x in range(TILES_X)] for y in range(TILES_Y)]
         self.graph_background = Level.Graph().connect_maze(self.grid_background)
+        # print("Graph Background")
+        # print(self.graph_background)
+        # for i in self.graph_background:
+        #     x,y=Level.Graph().decode_vertex_name(i)
+        #     self.grid_background[y][x]="A"
+        # for i in self.grid_background:
+        #     print(i)
+            
         for i in range(random.randint(10,25)):
             self.ghost_background.append(Entity.Dumb_Ghost(self.screen))
             self.ghost_background[i].set_maze(self.grid_background, self.graph_background)
@@ -133,7 +143,7 @@ class Start_Menu:
         self.screen.blit(title_surface, title_rect)
         
         for i, option in enumerate(self.difficulty_options):
-            option_text = option
+            option_text = Level.Difficulty(option).name
             if i == self.difficulty_selection:
                 outline_color = (0, 0, 255) 
                 text_color = (255, 0, 0) 
@@ -164,10 +174,9 @@ class Start_Menu:
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
             if self.state == Game_State.START:
-                if event.key == pygame.K_RETURN:
-                    self.state = Game_State.MENU
-                    time.sleep(0.25)
-                    
+                self.state = Game_State.MENU
+                time.sleep(0.25)
+                
             elif self.state == Game_State.MENU:
                 # time.sleep(0.25)
                 if event.key == pygame.K_UP:
@@ -187,7 +196,9 @@ class Game:
         self.state = Game_State.START
         self.user=user
         self.score=0
-        self.life=3
+        self.life=1
+        
+        self.running = True
         
         self.tile_size = TILE_SIZE
         self.maze_layout = None
@@ -201,10 +212,12 @@ class Game:
         self.Food_Pellets=[]
         self.Fruit=[]
         
-        # self.player_x = 1  # Initial player position (tile coordinates)
-        # self.player_y = 1
-        # self.food_pellets = self.initialize_food_pellets()
+        self.font_path = os.path.join(base_path,'..','resources','font','Minecraft.ttf')
+        self.font = pygame.font.Font(self.font_path, 22)
         
+        self.start_image = load_image('start.gif')
+        self.ready_image = load_image('ready.gif')
+        self.game_over_image = load_image('gameover.gif')
         self.wall_image = load_image('wall-nub.gif')
         self.life_image = load_image('life.gif')
         
@@ -227,7 +240,7 @@ class Game:
         self.maze_layout=level_data['maze']
         self.maze_graph=level_data['graph']
         self.maze_path=level_data['path']
-        # print(self.maze_layout)
+        
         
         self.Player = Player
         self.Player.set_maze(self.maze_layout, self.maze_graph)
@@ -257,12 +270,69 @@ class Game:
                 self.Ghost[i].set_maze(self.maze_layout, self.maze_graph)
                 self.Ghost[i].set_graph(Level.Graph())
                 self.Ghost[i].set_pos()
-    
+            
+        
+        for vertex in self.maze_path:
+            x,y=vertex.split(',')
+            self.Food_Pellets.append(Object.Pellet_Food(self.screen, int(y), int(x)))
+        
+    def draw_hud(self):
+        # Draw life images in the bottom left corner
+        life_x = 10
+        life_y = self.screen.get_height() - self.life_image.get_height() - 10
+        for i in range(self.life):
+            self.screen.blit(self.life_image, (life_x, life_y))
+            life_x += self.life_image.get_width() + 5  # Add some spacing between life images
+
+        # Draw score next to the life images with a red outline
+        score_text = f'Score: {self.score}'
+        score_surface = self.font.render(score_text, True, (255, 255, 255))
+        score_outline_surface = self.font.render(score_text, True, (255, 0, 0))
+        score_rect = score_surface.get_rect(bottomleft=(life_x + 5, self.screen.get_height() -5))
+        score_outline_rect = score_outline_surface.get_rect(bottomleft=(life_x + 5, self.screen.get_height() - 5))
+
+        # Draw the outline by rendering the text multiple times with slight offsets
+        offsets = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+        for dx, dy in offsets:
+            self.screen.blit(score_outline_surface, score_outline_rect.move(dx, dy))
+        self.screen.blit(score_surface, score_rect)
+        
     def draw_maze(self):
         for y, row in enumerate(self.maze_layout):
             for x, tile in enumerate(row):
                 if tile == '#':
                     self.screen.blit(self.wall_image, (x * self.tile_size, y * self.tile_size))
+                # else:
+                
+    def game_begin(self):
+        # self.screen.fill((0, 0, 0))
+        self.update_screen()
+        ready_rect = self.ready_image.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+        self.screen.blit(self.ready_image, ready_rect)
+        pygame.display.flip()
+        time.sleep(2)
+    
+    def game_restart(self):
+        self.Player.set_pos()
+        for setan in self.Ghost:
+            setan.set_pos()
+        self.game_begin()
+            
+    def game_over(self):
+        self.Player=None
+        self.Ghost=[]
+        self.Food_Pellets=[]
+        self.score=0
+        self.life=3
+        self.maze_layout = None
+        self.maze_graph = None
+        self.maze_path = None
+        self.maze_width = None
+        self.maze_height = None   
+        
+        self.screen.blit(self.game_over_image, (self.screen.get_width() // 2 - self.game_over_image.get_width() // 2, self.screen.get_height() // 2 - self.game_over_image.get_height() // 2))
+        pygame.display.flip()
+        time.sleep(2)
 
     def update_offsets(self):
         # Calculate the offsets to center the maze
@@ -274,33 +344,60 @@ class Game:
         self.offset_y = 0#(SCREEN_HEIGHT - maze_height) // 2
 
     
-    def update_screen(self):
-        BLACK = (0, 0, 0)
-        self.screen.fill(BLACK)
-        self.update_offsets()
-        current_time=time.time()
-        
-        self.draw_maze()
-        for setan in self.Ghost:
-            if isinstance(setan,Entity.Dumb_Ghost):
-                setan.control(current_time)
-            else:
-                setan.control(current_time, self.Player)
-            
-        # self.Ghost.control(current_time)
+    def update_screen(self, keys=None):
         keys=pygame.key.get_pressed()
-        self.Player.move(keys, self.offset_x, self.offset_y)
-        self.Player.draw(self.offset_x, self.offset_y)
-        pygame.display.flip()
+        if self.state == Game_State.START:
+            BLACK = (0, 0, 0)
+
+            current_time=time.time()
+            random.seed(current_time)
+            self.update_offsets()
+            self.screen.fill(BLACK)
+            self.draw_maze()
+            self.draw_hud()
+            for setan in self.Ghost:
+                # print("ss")
+                if isinstance(setan,Entity.Dumb_Ghost):
+                    setan.control(current_time)
+                else:
+                    setan.control(current_time, self.Player)
+                
+                if setan.check_collision(self.Player):
+                    self.life -= 1
+                    if self.life == 0:
+                        self.state = Game_State.GAME_OVER
+                        self.game_over()
+                        return
+                    else:
+                        self.game_restart()
+                
+            for food in self.Food_Pellets:
+                food.draw()
+                if food.check_collision(self.Player):
+                    self.score += food.get_score()
+                    self.Food_Pellets.remove(food)
+                    
+            self.Player.move(keys, self.offset_x, self.offset_y)
+            self.Player.draw(self.offset_x, self.offset_y)
+            pygame.display.flip()
+        elif self.state == Game_State.GAME_OVER:
+            self.game_over()
+            if keys[pygame.K_RETURN]:
+                self.state = Game_State.END
         
     def run(self):
-        running = True
-        while running:
+        self.running = True
+        while self.running:
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-                    
+                if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE) or self.state == Game_State.END:
+                    self.state = Game_State.START
+                    self.running = False
+                    return
+                
             self.update_screen()
+            # if self.state == Game_State.END:
+            #     self.running = False
+                
             # pygame.display.update()
             pygame.time.Clock().tick(30)
 
@@ -324,29 +421,36 @@ class Game_Controller:
     def run(self):
         running = True
         while running:
+            current_time=time.time()
+            random.seed(current_time)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
             result=None
+            
+            self.start_menu.handle_event(event)
             if self.start_menu.get_state() == Game_State.START:
                 self.start_menu.start_menu()
+                
             elif self.start_menu.get_state() == Game_State.MENU:
                 self.start_menu.difficulty_menu()
+                
             elif self.start_menu.get_state() == Game_State.GAME_START:
                 # print('Game Start')
-                # print(self.start_menu.get_difficulty())
                 self.level.generate_level()
                 self.game.initialize_game(self.level.get_level_data(), Entity.Player(screen), self.start_menu.get_difficulty())
+                self.game.game_begin()
+                self.start_menu.set_state(Game_State.GAME)
+                
+            elif self.start_menu.get_state() == Game_State.GAME:
+                # print(self.start_menu.get_difficulty())
                 result=self.game.run()
-            self.start_menu.handle_event(event)
+                
             # self.game.handle_event(event)
             pygame.time.Clock().tick(30)
 
 if __name__== '__main__':
-    # Level_node = Level.Level()
-    # Level_node.advance_level()
-    # Game.initialize_game(Level_node.get_level_data(), Player=Entity.Player(screen))
-    # Game.run()
+    
     
     Game = Game(screen, 'user')
     level_node = Level.Level()

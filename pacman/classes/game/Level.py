@@ -33,14 +33,14 @@ class Graph:
   
     def add_vertex(self, symbol, vertex, heuristic_value=0, adjacentcy_list={}):
         if vertex not in adjacentcy_list:
-            adjacentcy_list[vertex] = [symbol, heuristic_value,[]]
+            adjacentcy_list[vertex] = [symbol, heuristic_value, []]
         return adjacentcy_list
 
-    def add_edge(self, symbol_src, node_src, symbol_dest, node_dest, weight=0,adjacentcy_list={}):
+    def add_edge(self, symbol_src, node_src, symbol_dest, node_dest, weight=0, adjacentcy_list={}):
         if node_src not in adjacentcy_list:
-            adjacentcy_list=self.add_vertex(symbol_src, node_src)
+            adjacentcy_list = self.add_vertex(symbol_src, node_src)
         if node_dest not in adjacentcy_list:
-            adjacentcy_list=self.add_vertex(symbol_dest, node_dest)
+            adjacentcy_list = self.add_vertex(symbol_dest, node_dest)
 
         if node_src in adjacentcy_list and node_dest in adjacentcy_list:
             adjacentcy_list[node_src][2].append((node_dest, weight))
@@ -48,57 +48,54 @@ class Graph:
         return adjacentcy_list
     
     def connect_maze(self, grid_map): #traverse the grid with bfs to connect each node as adjacent vertex to form an edge, not necessary but it looks cool
-        # Traditional traverse
-        # for i in range(len(self.__grid_map)):
-        #   for j in range(len(self.__grid_map[i])):
-        #     pass
-        walkable_path={}
-        # self.__wall_list={}
-        grid_width = len(grid_map[0])
-        grid_height=len(grid_map)
+        walkable_path = {}
+        def add_vertex(symbol, vertex, heuristic_value=0):
+            if vertex not in walkable_path:
+                walkable_path[vertex] = [symbol, heuristic_value, []]
+            return walkable_path
 
-        # begin_x, begin_y=random.randint(0,grid_height-1),random.randint(0,grid_width-1)
-        begin_x, begin_y=0,0
-        if grid_map[begin_x][begin_y]=="#":
-            while(grid_map[begin_x][begin_y]=="#"):
-                begin_x, begin_y=random.randint(0,grid_height-1),random.randint(0,grid_width-1)
-        x,y=begin_x,begin_y
-        vertex_queue=[self.encode_vertex_name(x,y)]
-        visited_vertex=set()
-        while(vertex_queue):
-            current_vertex=vertex_queue.pop(0)
+        def add_edge(symbol_src, node_src, symbol_dest, node_dest, weight=0):
+            if node_src not in walkable_path:
+                add_vertex(symbol_src, node_src)
+            if node_dest not in walkable_path:
+                add_vertex(symbol_dest, node_dest)
+
+            if node_src in walkable_path and node_dest in walkable_path:
+                walkable_path[node_src][2].append((node_dest, weight))
+                walkable_path[node_dest][2].append((node_src, weight))
+            return walkable_path
+
+        grid_width = len(grid_map[0])
+        grid_height = len(grid_map)
+
+        begin_x, begin_y = 1, 1
+        if grid_map[begin_x][begin_y] == "#":
+            while grid_map[begin_x][begin_y] == "#":
+                begin_x, begin_y = random.randint(1, grid_height - 1), random.randint(1, grid_width - 1)
+        x, y = begin_x, begin_y
+        vertex_queue = [self.encode_vertex_name(x, y)]
+        visited_vertex = set()
+
+        while vertex_queue:
+            current_vertex = vertex_queue.pop(0)
             visited_vertex.add(current_vertex)
 
-            cur_x,cur_y=self.decode_vertex_name(current_vertex)
+            cur_x, cur_y = self.decode_vertex_name(current_vertex)
             # check adjacent vertex by coordinates
-            if (cur_x-1<grid_height and cur_x-1>=0) and (grid_map[cur_x-1][cur_y] != "#"):
-                neighbor=self.encode_vertex_name(cur_x-1,cur_y)
-                if(neighbor not in visited_vertex or (neighbor,1) not in walkable_path[current_vertex][2]):
-                    vertex_queue.append(neighbor)
-                    visited_vertex.add(neighbor)
-                    walkable_path=self.add_edge(grid_map[cur_x][cur_y],current_vertex,grid_map[cur_x-1][cur_y],neighbor,1, walkable_path)
-
-            if (cur_x+1<grid_height and cur_x+1>=0) and (grid_map[cur_x+1][cur_y] != "#"):
-                neighbor=self.encode_vertex_name(cur_x+1,cur_y)
-                if(neighbor not in visited_vertex or (neighbor,1) not in walkable_path[current_vertex][2]):
-                    vertex_queue.append(neighbor)
-                    visited_vertex.add(neighbor)
-                    walkable_path=self.add_edge(grid_map[cur_x][cur_y],current_vertex,grid_map[cur_x-1][cur_y],neighbor,1,walkable_path)
-
-            if (cur_y-1<grid_width and cur_y-1>=0) and (grid_map[cur_x][cur_y-1] != "#"):
-                neighbor=self.encode_vertex_name(cur_x,cur_y-1)
-                if(neighbor not in visited_vertex or (neighbor,1) not in walkable_path[current_vertex][2]):
-                    vertex_queue.append(neighbor)
-                    visited_vertex.add(neighbor)
-                    walkable_path=self.add_edge(grid_map[cur_x][cur_y],current_vertex,grid_map[cur_x-1][cur_y],neighbor,1,walkable_path)
-
-            if (cur_y+1<grid_width and cur_y+1>=0) and (grid_map[cur_x][cur_y+1] != "#"):
-                neighbor=self.encode_vertex_name(cur_x,cur_y+1)
-                if(neighbor not in visited_vertex or (neighbor,1) not in walkable_path[current_vertex][2]):
-                    vertex_queue.append(neighbor)
-                    visited_vertex.add(neighbor)
-                    walkable_path=self.add_edge(grid_map[cur_x][cur_y],current_vertex,grid_map[cur_x-1][cur_y],neighbor,1,walkable_path)
-                    
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                neighbor_x, neighbor_y = cur_x + dx, cur_y + dy
+                if 0 <= neighbor_x < grid_height and 0 <= neighbor_y < grid_width and grid_map[neighbor_x][neighbor_y] == " ":
+                    neighbor = self.encode_vertex_name(neighbor_x, neighbor_y)
+                    if neighbor not in visited_vertex:
+                        vertex_queue.append(neighbor)
+                        visited_vertex.add(neighbor)
+                        add_edge(' ', current_vertex, ' ', neighbor, 1)
+                        
+        # for i in walkable_path:
+        #     x,y=self.decode_vertex_name(i)
+        #     grid_map[y][x]="a"
+        # for i in grid_map:
+        #     print(i)
         return walkable_path
 
 class Maze_Generator:
@@ -206,7 +203,6 @@ class Level:
         #     self.ghost_lineup = [random.choice(self.SUPERHARD) for _ in range(8)]
         self.generate_maze(maze_width=self.level_x_size, maze_height=self.level_y_size)
         # self.set_level(self.level_number)
-        print("Difficulty: ", self.difficulty)
         
     def advance_level(self):
         self.level_number += 1
@@ -232,7 +228,14 @@ class Level:
         maze.height = self.level_y_size = maze_height
         
         self.level_maze = maze.generate_maze()
+        # for i in self.level_maze:
+        #     print(i)
         self.level_graph = grapher.connect_maze(self.level_maze)
+        # for i in self.level_graph:
+        #     x,y=grapher.decode_vertex_name(i)
+        #     self.level_maze[y][x]="a"
+        # for i in self.level_maze:
+        #     print(i)
         self.level_path_list = [str(i) for i in self.level_graph.keys()]
     
 if __name__ == "__main__":

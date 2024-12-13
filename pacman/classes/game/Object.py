@@ -22,8 +22,8 @@ class Pellet_Food(object_food):
     def __init__(self,screen, x, y):
         self.score = 100
         self.screen = screen 
-        self.x = x *TILE_SIZE+TILE_SIZE//2
-        self.y = y *TILE_SIZE+TILE_SIZE//2
+        self.x = x * TILE_SIZE + TILE_SIZE//2
+        self.y = y * TILE_SIZE + TILE_SIZE//2
         self.radius = 2
         # print(x, y)
         
@@ -38,9 +38,11 @@ class Pellet_Food(object_food):
     def get_score(self):
         return self.score
     
-    def check_collision(self,player):
-        distance = ((self.x - player.xpos) ** 2 + (self.y - player.ypos) ** 2) ** 0.5
-        return distance < (self.radius + 12)
+    # def check_collision(self,player):
+    #     distance = ((self.x - player.xpos) ** 2 + (self.y - player.ypos) ** 2) ** 0.5
+    #     return distance < (self.radius + 12)
+    def check_collision(self, player):
+        return self.x//TILE_SIZE == player.xpos//TILE_SIZE and self.y//TILE_SIZE == player.ypos//TILE_SIZE
 
 class Strawberry_Food(object_food):
     # extra score 1500

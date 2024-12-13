@@ -42,6 +42,7 @@ class Player:
         
         self.velx=0
         self.vely=0
+        self.pending_turn = None
         
         self.speed=5
         
@@ -77,6 +78,7 @@ class Player:
         return (self.xpos, self.ypos)
     
     def set_pos(self):
+        # print("asdsa",self.maze_graph.keys())
         pos=random.choice([str(i) for i in self.maze_graph.keys()])
         self.xpos,self.ypos=[int(i)*TILE_SIZE for i in pos.split(',')]
         # print(pos)
@@ -119,34 +121,48 @@ class Player:
     def move(self, keys, offset_x=0, offset_y=0):
         # Handle keyboard input for movement
         if keys[pygame.K_LEFT]:
-            self.velx = -self.speed
-            self.vely = 0
+            self.set_pending_turn(-self.speed, 0)
         elif keys[pygame.K_RIGHT]:
-            self.velx = self.speed
-            self.vely = 0
+            self.set_pending_turn(self.speed, 0)
         elif keys[pygame.K_UP]:
-            self.velx = 0
-            self.vely = -self.speed
+            self.set_pending_turn(0, -self.speed)
         elif keys[pygame.K_DOWN]:
-            self.velx = 0
-            self.vely = self.speed
+            self.set_pending_turn(0, self.speed)
+
+        # Constrain movement to allow turns only when aligned with tiles
+        if self.xpos % TILE_SIZE == 0 and self.ypos % TILE_SIZE == 0:
+            # Allow turning if the pending turn is valid
+            if self.pending_turn:
+                new_velx, new_vely = self.pending_turn
+                new_xpos = self.xpos + new_velx
+                new_ypos = self.ypos + new_vely
+                if self.is_valid_move(new_xpos, new_ypos):
+                    self.velx, self.vely = self.pending_turn
+                    self.pending_turn = None
 
         new_xpos = self.xpos + self.velx
         new_ypos = self.ypos + self.vely
-        
-        # new_xpos=self.xpos//TILE_SIZE
-        # new_ypos=self.ypos//TILE_SIZE
 
-        # Check for collisions with walls
+        # Check for collisions with walls before updating position
         if self.is_valid_move(new_xpos, self.ypos):
             self.xpos = new_xpos
         else:
+            self.xpos = (self.xpos // TILE_SIZE) * TILE_SIZE
+            if self.velx < 0:
+                self.xpos += TILE_SIZE
             self.velx = 0
 
         if self.is_valid_move(self.xpos, new_ypos):
             self.ypos = new_ypos
         else:
+            self.ypos = (self.ypos // TILE_SIZE) * TILE_SIZE
+            if self.vely < 0:
+                self.ypos += TILE_SIZE
             self.vely = 0
+
+    def set_pending_turn(self, velx, vely):
+        # Set the pending turn direction
+        self.pending_turn = (velx, vely)
 
     def is_valid_move(self, x, y, offset_x=0, offset_y=0):
         tile_x = (x + TILE_SIZE // 2) // TILE_SIZE 
@@ -267,6 +283,11 @@ class Ghost:
                         self.anim[i].set_at((x, y), (255, 255, 255, 255))
             self.anim[i] = pygame.transform.scale(self.anim[i], (0, 0))
         self.state = Ghost_State.DEAD
+    
+    def check_collision(self, player):
+        ghost_rect = pygame.Rect(self.cur_x, self.cur_y, TILE_SIZE, TILE_SIZE)
+        player_rect = pygame.Rect(player.xpos, player.ypos, TILE_SIZE, TILE_SIZE)
+        return ghost_rect.colliderect(player_rect)
         
     
     def generate_path(self, goal_node):
@@ -341,10 +362,11 @@ class Ghost:
         # print(int(self.cur_x/TILE_SIZE), int(self.cur_y/TILE_SIZE))
         if (self.path and (self.Graph.encode_vertex_name(int(self.cur_x/TILE_SIZE), int(self.cur_y/TILE_SIZE)) == self.goal)):
             if len(self.path)>4:
-                self.path.pop(0)
-                self.path.pop(0)
                 # self.path.pop(0)
                 # self.path.pop(0)
+                # self.path.pop(0)
+                # self.path.pop(0)
+                pass
             self.goal = self.path.pop(0)
             
         elif not self.path:
@@ -463,47 +485,51 @@ class Hunter2_Ghost(Ghost):
         return (c_x-g_x)+(c_y-g_y)
     
     def ambush(self, player_direction, player_x, player_y):
-        if player_direction == "LEFT":
-            for i in range(5):
-                if self.maze_graph[player_x-1][player_y] != "#":
-                    player_x -= 1
-                elif self.maze_graph[player_x][player_y-1] != "#":
-                    player_y -= 1
-                elif self.maze_graph[player_x][player_y+1] != "#":
-                    player_y += 1
-                elif self.maze_graph[player_x+1][player_y] != "#":
-                    player_x += 1
-        elif player_direction == "RIGHT":
-            for i in range(5):
-                if self.maze_graph[player_x+1][player_y] != "#":
-                    player_x += 1
-                elif self.maze_graph[player_x][player_y-1] != "#":
-                    player_y -= 1
-                elif self.maze_graph[player_x][player_y+1] != "#":
-                    player_y += 1
-                elif self.maze_graph[player_x-1][player_y] != "#":
-                    player_x -= 1
-        elif player_direction == "UP":
-            for i in range(5):
-                if self.maze_graph[player_x][player_y-1] != "#":
-                    player_y -= 1
-                elif self.maze_graph[player_x+1][player_y] != "#":
-                    player_x += 1
-                elif self.maze_graph[player_x-1][player_y] != "#":
-                    player_x -= 1
-                elif self.maze_graph[player_x][player_y+1] != "#":
-                    player_y += 1
-        elif player_direction == "DOWN":
-            for i in range(5):
-                if self.maze_graph[player_x][player_y+1] != "#":
-                    player_y += 1
-                elif self.maze_graph[player_x+1][player_y] != "#":
-                    player_x += 1
-                elif self.maze_graph[player_x-1][player_y] != "#":
-                    player_x -= 1
-                elif self.maze_graph[player_x][player_y-1] != "#":
-                    player_y -= 1
-        # return self.Graph.encode_vertex_name(player_x, player_y)
+        for i in range(5):
+            try:
+                if player_direction == "LEFT":
+                    for i in range(5):
+                        if self.maze_graph[player_x-1][player_y] != "#":
+                            player_x -= 1
+                        elif self.maze_graph[player_x][player_y-1] != "#":
+                            player_y -= 1
+                        elif self.maze_graph[player_x][player_y+1] != "#":
+                            player_y += 1
+                        elif self.maze_graph[player_x+1][player_y] != "#":
+                            player_x += 1
+                elif player_direction == "RIGHT":
+                    for i in range(5):
+                        if self.maze_graph[player_x+1][player_y] != "#":
+                            player_x += 1
+                        elif self.maze_graph[player_x][player_y-1] != "#":
+                            player_y -= 1
+                        elif self.maze_graph[player_x][player_y+1] != "#":
+                            player_y += 1
+                        elif self.maze_graph[player_x-1][player_y] != "#":
+                            player_x -= 1
+                elif player_direction == "UP":
+                    for i in range(5):
+                        if self.maze_graph[player_x][player_y-1] != "#":
+                            player_y -= 1
+                        elif self.maze_graph[player_x+1][player_y] != "#":
+                            player_x += 1
+                        elif self.maze_graph[player_x-1][player_y] != "#":
+                            player_x -= 1
+                        elif self.maze_graph[player_x][player_y+1] != "#":
+                            player_y += 1
+                elif player_direction == "DOWN":
+                    for i in range(5):
+                        if self.maze_graph[player_x][player_y+1] != "#":
+                            player_y += 1
+                        elif self.maze_graph[player_x+1][player_y] != "#":
+                            player_x += 1
+                        elif self.maze_graph[player_x-1][player_y] != "#":
+                            player_x -= 1
+                        elif self.maze_graph[player_x][player_y-1] != "#":
+                            player_y -= 1
+            except KeyError as e:
+                print('KeyError:', e)
+                return [player_x,player_y]
         return [player_x,player_y]
                         
     def control(self, current_time=0,player=None):
@@ -514,7 +540,7 @@ class Hunter2_Ghost(Ghost):
             
         if self.state == Ghost_State.HUNT:
             if current_time - self.last_state_time < random.randint(7, 10):
-                if current_time - self.last_path_update_time > 2:
+                if current_time - self.last_path_update_time > 1:
                     self.last_path_update_time = current_time
                     player_pos = player.get_pos()
                     self.generate_path(self.Graph.encode_vertex_name(player_pos[0] // TILE_SIZE, player_pos[1] // TILE_SIZE))
@@ -523,7 +549,7 @@ class Hunter2_Ghost(Ghost):
                 self.last_state_time = current_time
         elif self.state == Ghost_State.COOLDOWN:
             if current_time - self.last_state_time < 3:
-                if current_time - self.last_path_update_time > 2:
+                if current_time - self.last_path_update_time > 1:
                     self.last_path_update_time = current_time
                     self.generate_path(self.Graph.encode_vertex_name(random.randint(0, 29), random.randint(0, 29)))
             else:
@@ -532,7 +558,7 @@ class Hunter2_Ghost(Ghost):
             
             
         if self.state == Ghost_State.AMBUSH:
-            if current_time - self.last_path_update_time > random.randint(1,5):
+            if current_time - self.last_path_update_time > random.randint(1,3):
                 self.last_path_update_time = current_time
                 player_direction = player.get_direction()
                 player_x, player_y = player.get_pos()
@@ -572,7 +598,7 @@ class Hunter1_Ghost(Ghost):
                 self.last_state_time = current_time
         elif self.state == Ghost_State.COOLDOWN:
             if current_time - self.last_state_time < 2:
-                if current_time - self.last_path_update_time > 4:
+                if current_time - self.last_path_update_time > 2:
                     self.last_path_update_time = current_time
                     self.generate_path(self.Graph.encode_vertex_name(random.randint(0, 29), random.randint(0, 29)))
             else:
