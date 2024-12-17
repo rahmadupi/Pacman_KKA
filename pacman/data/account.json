@@ -1,0 +1,14 @@
+{
+    "user1":{
+        "score":0,
+        "level":1,
+        "difficulty":"easy",
+        "current_level_data":{}
+    },
+    "user2":{
+        "score":0,
+        "level":1,
+        "difficulty":"easy",
+        "current_level_data":{}
+    }
+}

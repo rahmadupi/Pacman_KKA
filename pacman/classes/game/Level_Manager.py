@@ -228,7 +228,7 @@ class Level:
             'path':self.level_path_list
             }
         
-    def load_level(self):
+    def load_level(self, data):
         # self.set_level(level_number)
         pass
     
