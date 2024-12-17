@@ -196,7 +196,7 @@ class Game:
         self.state = Game_State.START
         self.user=user
         self.score=0
-        self.life=1
+        self.life=3
         
         self.running = True
         
@@ -218,8 +218,24 @@ class Game:
         self.start_image = load_image('start.gif')
         self.ready_image = load_image('ready.gif')
         self.game_over_image = load_image('gameover.gif')
-        self.wall_image = load_image('wall-nub.gif')
         self.life_image = load_image('life.gif')
+        
+        self.wall_nub = load_image('wall-nub.gif')
+        self.wall_corner_ll = load_image('wall-corner-ll.gif')
+        self.wall_corner_lr = load_image('wall-corner-lr.gif')
+        self.wall_corner_ul = load_image('wall-corner-ul.gif')
+        self.wall_corner_ur = load_image('wall-corner-ur.gif')
+        self.wall_end_b = load_image('wall-end-b.gif')
+        self.wall_end_l = load_image('wall-end-l.gif')
+        self.wall_end_r = load_image('wall-end-r.gif')
+        self.wall_end_t = load_image('wall-end-t.gif')
+        self.wall_straight_horiz = load_image('wall-straight-horiz.gif')
+        self.wall_straight_vert = load_image('wall-straight-vert.gif')
+        self.wall_t_left = load_image('wall-t-left.gif')
+        self.wall_t_right = load_image('wall-t-right.gif')
+        self.wall_t_up = load_image('wall-t-top.gif')
+        self.wall_t_bottom = load_image('wall-t-bottom.gif')
+        self.wall_x = load_image('wall-x.gif')
         
     # def set_player(self, player):
     #     self.Player=player  
@@ -301,8 +317,51 @@ class Game:
         for y, row in enumerate(self.maze_layout):
             for x, tile in enumerate(row):
                 if tile == '#':
-                    self.screen.blit(self.wall_image, (x * self.tile_size, y * self.tile_size))
+                    self.screen.blit(self.wall_nub, (x * self.tile_size, y * self.tile_size))
                 # else:
+    def draw_maze(self):
+        for y, row in enumerate(self.maze_layout):
+            for x, tile in enumerate(row):
+                if tile == '#':
+                    self.screen.blit(self.wall_nub, (x * self.tile_size, y * self.tile_size))
+                    # Boundary checks
+                    # up = y > 0 and self.maze_layout[y - 1][x] == '#'
+                    # down = y < len(self.maze_layout) - 1 and self.maze_layout[y + 1][x] == '#'
+                    # left = x > 0 and self.maze_layout[y][x - 1] == '#'
+                    # right = x < len(row) - 1 and self.maze_layout[y][x + 1] == '#'
+
+                    # # Determine the type of wall based on neighboring tiles
+                    # if up and down and left and right:
+                    #     self.screen.blit(self.wall_x, (x * self.tile_size, y * self.tile_size))
+                    # elif up and down and left and not right:
+                    #     self.screen.blit(self.wall_t_right, (x * self.tile_size, y * self.tile_size))
+                    # elif up and down and not left and right:
+                    #     self.screen.blit(self.wall_t_left, (x * self.tile_size, y * self.tile_size))
+                    # elif up and not down and left and right:
+                    #     self.screen.blit(self.wall_t_bottom, (x * self.tile_size, y * self.tile_size))
+                    # elif not up and down and left and right:
+                    #     self.screen.blit(self.wall_t_up, (x * self.tile_size, y * self.tile_size))
+                    # elif up and not down and not left and not right:
+                    #     self.screen.blit(self.wall_end_t, (x * self.tile_size, y * self.tile_size))
+                    # elif not up and down and not left and not right:
+                    #     self.screen.blit(self.wall_end_b, (x * self.tile_size, y * self.tile_size))
+                    # elif not up and not down and left and not right:
+                    #     self.screen.blit(self.wall_end_l, (x * self.tile_size, y * self.tile_size))
+                    # elif not up and not down and not left and right:
+                    #     self.screen.blit(self.wall_end_r, (x * self.tile_size, y * self.tile_size))
+                    # elif up and not down and left and not right:
+                    #     self.screen.blit(self.wall_corner_ul, (x * self.tile_size, y * self.tile_size))
+                    # elif up and not down and not left and right:
+                    #     self.screen.blit(self.wall_corner_ur, (x * self.tile_size, y * self.tile_size))
+                    # elif not up and down and left and not right:
+                    #     self.screen.blit(self.wall_corner_ll, (x * self.tile_size, y * self.tile_size))
+                    # elif not up and down and not left and right:
+                    #     self.screen.blit(self.wall_corner_lr, (x * self.tile_size, y * self.tile_size))
+                    # elif up and down and not left and not right:
+                    #     self.screen.blit(self.wall_straight_vert, (x * self.tile_size, y * self.tile_size))
+                    # elif not up and not down and left and right:
+                    #     self.screen.blit(self.wall_straight_horiz, (x * self.tile_size, y * self.tile_size))
+
                 
     def game_begin(self):
         # self.screen.fill((0, 0, 0))
@@ -319,20 +378,20 @@ class Game:
         self.game_begin()
             
     def game_over(self):
-        self.Player=None
+        # self.Player=None
         self.Ghost=[]
         self.Food_Pellets=[]
         self.score=0
         self.life=3
-        self.maze_layout = None
-        self.maze_graph = None
-        self.maze_path = None
-        self.maze_width = None
-        self.maze_height = None   
+        # self.maze_layout = None
+        # self.maze_graph = None
+        # self.maze_path = None
+        # self.maze_width = None
+        # self.maze_height = None   
         
         self.screen.blit(self.game_over_image, (self.screen.get_width() // 2 - self.game_over_image.get_width() // 2, self.screen.get_height() // 2 - self.game_over_image.get_height() // 2))
         pygame.display.flip()
-        time.sleep(2)
+        # time.sleep(2)
 
     def update_offsets(self):
         # Calculate the offsets to center the maze
@@ -377,19 +436,27 @@ class Game:
                     self.score += food.get_score()
                     self.Food_Pellets.remove(food)
                     
+            if not self.Food_Pellets:
+                self.state = Game_State.WIN
+                self.game_over()
+                return
+                    
             self.Player.move(keys, self.offset_x, self.offset_y)
             self.Player.draw(self.offset_x, self.offset_y)
             pygame.display.flip()
         elif self.state == Game_State.GAME_OVER:
             self.game_over()
+            print("Game Over")
             if keys[pygame.K_RETURN]:
                 self.state = Game_State.END
         
     def run(self):
-        self.running = True
+        # self.running = True
+        print(self.state)
         while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE) or self.state == Game_State.END:
+                    print("End")
                     self.state = Game_State.START
                     self.running = False
                     return
@@ -409,6 +476,8 @@ class Game_Controller:
         self.level = None
         self.game = None
         
+        self.running = True
+        
     def set_start_menu(self, start_menu):
         self.start_menu = start_menu
     
@@ -419,13 +488,13 @@ class Game_Controller:
         self.level = level
         
     def run(self):
-        running = True
-        while running:
+        # running = True
+        while self.running:
             current_time=time.time()
             random.seed(current_time)
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    self.running = False
             result=None
             
             self.start_menu.handle_event(event)
@@ -440,11 +509,15 @@ class Game_Controller:
                 self.level.generate_level()
                 self.game.initialize_game(self.level.get_level_data(), Entity.Player(screen), self.start_menu.get_difficulty())
                 self.game.game_begin()
-                self.start_menu.set_state(Game_State.GAME)
+                self.start_menu.set_state(Game_State.START)
+                self.game.run()
+                self.level.reset_level()
                 
-            elif self.start_menu.get_state() == Game_State.GAME:
-                # print(self.start_menu.get_difficulty())
-                result=self.game.run()
+            # elif self.start_menu.get_state() == Game_State.GAME:
+            #     # print(self.start_menu.get_difficulty())
+            #     self.start_menu.set_state(Game_State.START)
+            #     self.game.run()
+            #     self.level.reset_level()
                 
             # self.game.handle_event(event)
             pygame.time.Clock().tick(30)

@@ -132,6 +132,8 @@ class Maze_Generator:
 
                 # Add new frontier cells
                 frontier.extend(self.get_frontier_cells(current_x, current_y))
+        
+        self.visited.clear()
         return self.grid
 
     def get_frontier_cells(self, x, y):
@@ -203,6 +205,13 @@ class Level:
         #     self.ghost_lineup = [random.choice(self.SUPERHARD) for _ in range(8)]
         self.generate_maze(maze_width=self.level_x_size, maze_height=self.level_y_size)
         # self.set_level(self.level_number)
+    def reset_level(self):
+        self.level_graph = None
+        self.level_path_list = None
+        self.level_maze = None
+        self.level_info = None
+        self.ghost_lineup = []
+        self.difficulty = random.choice(list(Difficulty))
         
     def advance_level(self):
         self.level_number += 1
